@@ -5,6 +5,7 @@ import torch
 from model import SR
 from torch.optim import Adam
 import torch.nn as nn
+from torch.autograd import Variable
 
 tra_img_name_list = glob.glob('dataset/*.jpg')
 train_dataset = SRDataset(tra_img_name_list)
@@ -15,7 +16,7 @@ train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 pretrain_dir = None
-# pretrain_dir = 'model.pth'
+# pretrain_dir = 'saved_models/model.pth'
 
 model = SR()
 
@@ -35,7 +36,8 @@ def train(model, optimizer, epochs, device):
         overall_loss = 0
         for batch_idx, data in enumerate(train_loader):
             x_hr = data['hr'].to(device)
-            x_lr = data['lr'].to(device)
+            x_lr = data['lr']
+            x_lr = Variable(x_lr.cuda(), requires_grad=True)
                         
             optimizer.zero_grad()
             x_hr_pred = model(x_lr)
@@ -46,7 +48,8 @@ def train(model, optimizer, epochs, device):
             optimizer.step()
         print("\tEpoch", epoch + 1, "\tAverage Loss: ", overall_loss/(batch_idx*batch_size))
         if (epoch+1)%50 == 0:
-            torch.save(model.state_dict(), f'saved_models/model_ep{epoch}_l_{overall_loss/(batch_idx*batch_size)}.pth')
+            # torch.save(model.state_dict(), f'saved_models/model_ep{epoch}_l_{overall_loss/(batch_idx*batch_size)}.pth')
+            torch.save(model.state_dict(), 'saved_models/model.pth')
         
 train(model, optimizer, epochs=500, device=device)
 torch.save(model.state_dict(), 'saved_models/model.pth')
